@@ -1,16 +1,19 @@
 extern crate regex;
-use regex::Regex;
-use std::env;
-use std::process::{Command, exit};
+//use regex::Regex;
+//use std::env;
+use std::process::{Command};
 use std::fs::{OpenOptions, File};
 use std::io::prelude::*;
 use std::io::{BufReader,BufRead};
+use std::error::Error;
+use std::path::Path;
 
 
 fn main() {
     //Rewrite to Main is needed.
     // This is needed for the end user to know what is happening.
-    let pass = "PASS!";
+    let mut holder:Vec<String> = vec![];
+    /*let pass = "PASS!";
     let fail = "FAIL!";
     let key_one = gpg_import_key_one();
     let key_two = gpg_import_key_two();
@@ -37,11 +40,14 @@ fn main() {
         println!("Pacman Key Init {}", pass);
     }else {
         println!("Pacman Key Init {}", fail);
-    }
+    }*/
     //modify_pacman_conf();
-    //check_pacman_conf();
-    let check = create_pacman_conf_old();
-    println!("{}", check);
+    holder =  check_pacman_conf();
+    check_pacman_conf();
+    let check_one = create_pacman_conf_old();;
+    println!("Created backup of \"/etc/pacman.conf:\" {}", check_one);
+    create_new_pacman_conf(holder);
+
 }
 
 fn gpg_import_key_one() -> bool{
@@ -143,54 +149,86 @@ fn gpg_remove_key_three() -> bool {
 
 fn create_pacman_conf_old() -> bool{
     let check:bool = true;
-    let output = Command::new("mv")
-        .arg("/etc/pacman.conf")
-        .arg("/etc/pacman.conf.old")
-        .output()
-        .expect("Process Failed to Execute!");
-    if output.stderr.is_empty(){
-        return check;
-    }else {
-        return !check;
+    let file_one = "out/pacman.conf";
+    let file_two = "out/pacman.conf.old";
+    let path_one = Path::new(file_one);
+    let path_two = Path::new(file_two);
+    let mut path_check:bool = false;
+    if path_one.exists() {
+        path_check = false;
+    }else if path_one.exists() && path_two.exists(){
+        path_check = true;
+    }else{
+        panic!("File Not Found!")
     }
 
+    if !path_check{
+        let output = Command::new("mv")
+            .arg("out/pacman.conf")
+            .arg("out/pacman.conf.old")
+            .output()
+            .expect("Process Failed to Execute!");
+        if output.stderr.is_empty(){
+            return check;
+        }else {
+            return !check;
+        }
+    }else {
+        //logic broken here..
+        let output = Command::new("mv")
+            .arg("out/pacman.conf.old")
+            .arg("out/pacman.conf.clobber")
+            .output()
+            .expect("Process Failed to Execute!");
+        if output.stderr.is_empty(){
+            let output = Command::new("mv")
+                .arg("out/pacman.conf")
+                .arg("out/pacman.conf.old")
+                .output()
+                .expect("Process Failed to Execute!");
+            if output.stderr.is_empty(){
+                return check;
+            }else {
+                return !check;
+            }
+        }else{
+            return !check;
+        };
+    }
 }
+//This function will be run on two iterations
+fn create_new_pacman_conf(x:Vec<String>) {
+    let path = Path::new("out/pacman.conf");
+    let display = path.display();
+    // Open a file in write-only mode, returns `io::Result<File>`
+    let mut file = match File::create(&path) {
+        Err(why) => panic!("couldn't create {}: {}",
+                           display,
+                           why.description()),
+        Ok(file) => file,
+    };
 
-fn modify_pacman_conf(){
-    //Function simply appends lines to the end of a file.
-    //Used to test idea, and with and without privilege escalation.
-    //Does not solve duplicates or allow for overwrite/clobber.
     let mut f = OpenOptions::new()
         .write(true)
         .append(true)
-        .open("/etc/pacman.conf.test")
+        .open("out/pacman.conf")
         .unwrap();
-    if let Err(e) =
-    writeln!(f, "[archlabs-repo]"){
-        println!("{}", e);
-    }
-    if let Err(e) =
-    writeln!(f, "SigLevel = Never"){
-        println!("{}", e);
-    }
-    if let Err(e) =
-    writeln!(f, "Server = https://archlabs.github.io/archlabs_repo/$arch"){
-        println!("{}", e);
-    }
-    if let Err(e) =
-    writeln!(f, "Server = https://downloads.sourceforge.net/project/archlabs-repo/archlabs_repo/$arch"){
-        println!("{}", e);
+    for item in x.iter(){
+        if let Err(e) =
+        writeln!(f, "{}",item.to_string()){
+            println!("{}", e);
+        }
     }
 }
 
-fn check_pacman_conf(){
+fn check_pacman_conf() ->Vec<String> {
     let mut one = 0;
     let mut two = 0;
     let mut three = 0;
     let mut four = 0;
     let mut count = 0;
     let mut recount = 0;
-    let mut contents = vec![];
+    let mut contents:Vec<String> = vec![];
     let check_str_one:String =
         "#[archlabs_repo]".to_string();
     let check_str_two:String =
@@ -211,42 +249,43 @@ fn check_pacman_conf(){
         archlabs-repo/archlabs_repo/$arch".to_string();
     let not_found = "Not Found";
     let found = "found";
-    let filename = r"/etc/pacman.conf.old";
+    let filename = r"/etc/pacman.conf.test";
     let mut f =
         BufReader::new(File::open(filename).unwrap());
-    for line in f.lines(){
+    for line in f.lines() {
         match line {
-            Ok(line) => if line.contains(&check_str_one){
+            Ok(line) => if line.contains(&check_str_one) {
                 let str_replace =
                     line.replace(&check_str_one, &check_str_two);
-                contents.push(str_replace);
+                contents.push(str_replace.to_string());
                 //println!("{}", str_replace);
-                }else if line.contains( &check_str_three){
+            } else if line.contains(&check_str_three) {
                 let str_replace =
                     line.replace(&check_str_three, &check_str_four);
-                contents.push(str_replace);
+                contents.push(str_replace.to_string());
                 //println!("{}", str_replace);
-                }else if line.contains(&check_str_five) {
+            } else if line.contains(&check_str_five) {
                 let str_replace =
                     line.replace(&check_str_five, &check_str_six);
-                contents.push(str_replace);
+                contents.push(str_replace.to_string());
                 //println!("{}", str_replace);
-                }else if line.contains(&check_str_seven){
-                    let str_replace =
-                        line.replace(&check_str_seven, &check_str_eight);
-                contents.push(str_replace);
+            } else if line.contains(&check_str_seven) {
+                let str_replace =
+                    line.replace(&check_str_seven, &check_str_eight);
+                contents.push(str_replace.to_string());
                 //println!("{}", str_replace);
-                }else {
+            } else {
                 contents.push(line.to_string());
                 //println!("{}", line.to_string());
             }
             //Error logic is flawed.. need to workout error check
             //to determine if pacman.conf needs to be modified.
-            Err(_) => if check_str_two.eq(line.unwrap().as_str()){
+            Err(_) => if check_str_two.eq(line.unwrap().as_str()) {
                 println!("No change needed");
-            }else {
+            } else {
                 println!("Something Happened");
             }
         };
-    }
+    };
+    return contents;
 }
