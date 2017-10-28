@@ -4,11 +4,13 @@ use std::env;
 use std::process::{Command, exit};
 use std::fs::{OpenOptions, File};
 use std::io::prelude::*;
-use std::io::BufReader;
+use std::io::{BufReader,BufRead};
 
 
 fn main() {
-    /*let pass = "PASS!";
+    //Rewrite to Main is needed.
+    // This is needed for the end user to know what is happening.
+    let pass = "PASS!";
     let fail = "FAIL!";
     let key_one = gpg_import_key_one();
     let key_two = gpg_import_key_two();
@@ -35,89 +37,129 @@ fn main() {
         println!("Pacman Key Init {}", pass);
     }else {
         println!("Pacman Key Init {}", fail);
-    }*/
+    }
     //modify_pacman_conf();
-    check_pacman_conf();
+    //check_pacman_conf();
+    let check = create_pacman_conf_old();
+    println!("{}", check);
 }
 
 fn gpg_import_key_one() -> bool{
+    let check:bool = true;
     let output = Command::new("gpg")
         .arg("--receive-keys")
         .arg("AEFB411B072836CD48FF0381AE252C284B5DBA5D")
         .output()
         .expect("Process Failed to Execute!");
-    let check = String::from_utf8(output.stdout).is_ok();
-    return check
+    if output.stderr.is_empty(){
+        return check;
+    }else {
+        return !check;
+    }
 }
 
 fn gpg_import_key_two() -> bool{
-
+    let check:bool = true;
     let output = Command::new("gpg")
         .arg("--receive-keys")
         .arg("9E4F11C6A072942A7B3FD3B0B81EB14A09A25EB0")
         .output()
         .expect("Process Failed to Execute!");
-    let check = String::from_utf8(output.stdout).is_ok();
-    return check
-
+    if output.stderr.is_empty(){
+        return check;
+    }else {
+        return !check;
+    }
 }
-fn gpg_import_key_three() -> bool{
 
+fn gpg_import_key_three() -> bool{
+    let check:bool = true;
     let output = Command::new("gpg")
         .arg("--receive-keys")
         .arg("35F52A02854DCCAEC9DD5CC410443C7F54B00041")
         .output()
         .expect("Process Failed to Execute!");
-    let check = String::from_utf8(output.stdout).is_ok();
-    return check
-
+    if output.stderr.is_empty(){
+        return check;
+    }else {
+        return !check;
+    }
 }
 
 fn gpg_init() -> bool{
-
+    let check:bool = true;
     let output = Command::new("pacman-key")
         .arg("--init")
         .output()
         .expect("Process Failed to Execute!");
-    let check = String::from_utf8(output.stdout).is_ok();
-    return check
-
+    if output.stderr.is_empty(){
+        return check;
+    }else {
+        return !check;
+    }
 }
 
 fn gpg_remove_key_one() -> bool{
+    let check:bool = true;
     let output = Command::new("gpg")
         .arg("-r")
         .arg("AEFB411B072836CD48FF0381AE252C284B5DBA5D")
         .output()
         .expect("Process Failed to Execute!");
-    let check = String::from_utf8(output.stdout).is_ok();
-    return check
+    if output.stderr.is_empty(){
+        return check;
+    }else {
+        return !check;
+    }
 }
 
 fn gpg_remove_key_two() -> bool{
-
+    let check:bool = true;
     let output = Command::new("gpg")
         .arg("-r")
         .arg("9E4F11C6A072942A7B3FD3B0B81EB14A09A25EB0")
         .output()
         .expect("Process Failed to Execute!");
-    let check = String::from_utf8(output.stdout).is_ok();
-    return check
-
+    if output.stderr.is_empty(){
+        return check;
+    }else {
+        return !check;
+    }
 }
 
 fn gpg_remove_key_three() -> bool {
+    let check:bool = true;
     let output = Command::new("gpg")
         .arg("-r")
         .arg("35F52A02854DCCAEC9DD5CC410443C7F54B00041")
         .output()
         .expect("Process Failed to Execute!");
-    let check = String::from_utf8(output.stdout).is_ok();
-    return check;
+    if output.stderr.is_empty(){
+        return check;
+    }else {
+        return !check;
+    }
+}
+
+fn create_pacman_conf_old() -> bool{
+    let check:bool = true;
+    let output = Command::new("mv")
+        .arg("/etc/pacman.conf")
+        .arg("/etc/pacman.conf.old")
+        .output()
+        .expect("Process Failed to Execute!");
+    if output.stderr.is_empty(){
+        return check;
+    }else {
+        return !check;
+    }
+
 }
 
 fn modify_pacman_conf(){
-
+    //Function simply appends lines to the end of a file.
+    //Used to test idea, and with and without privilege escalation.
+    //Does not solve duplicates or allow for overwrite/clobber.
     let mut f = OpenOptions::new()
         .write(true)
         .append(true)
@@ -139,7 +181,6 @@ fn modify_pacman_conf(){
     writeln!(f, "Server = https://downloads.sourceforge.net/project/archlabs-repo/archlabs_repo/$arch"){
         println!("{}", e);
     }
-
 }
 
 fn check_pacman_conf(){
@@ -168,74 +209,44 @@ fn check_pacman_conf(){
     let check_str_eight:String =
         "Server = https://downloads.sourceforge.net/project/\
         archlabs-repo/archlabs_repo/$arch".to_string();
-    let filename = r"/etc/pacman.conf.test";
+    let not_found = "Not Found";
+    let found = "found";
+    let filename = r"/etc/pacman.conf.old";
     let mut f =
-        File::open(filename).expect("File Not Found!");
-    for line in BufReader::new(f).lines(){
-        contents.push(line.unwrap());
-        count +=1;
+        BufReader::new(File::open(filename).unwrap());
+    for line in f.lines(){
+        match line {
+            Ok(line) => if line.contains(&check_str_one){
+                let str_replace =
+                    line.replace(&check_str_one, &check_str_two);
+                contents.push(str_replace);
+                //println!("{}", str_replace);
+                }else if line.contains( &check_str_three){
+                let str_replace =
+                    line.replace(&check_str_three, &check_str_four);
+                contents.push(str_replace);
+                //println!("{}", str_replace);
+                }else if line.contains(&check_str_five) {
+                let str_replace =
+                    line.replace(&check_str_five, &check_str_six);
+                contents.push(str_replace);
+                //println!("{}", str_replace);
+                }else if line.contains(&check_str_seven){
+                    let str_replace =
+                        line.replace(&check_str_seven, &check_str_eight);
+                contents.push(str_replace);
+                //println!("{}", str_replace);
+                }else {
+                contents.push(line.to_string());
+                //println!("{}", line.to_string());
+            }
+            //Error logic is flawed.. need to workout error check
+            //to determine if pacman.conf needs to be modified.
+            Err(_) => if check_str_two.eq(line.unwrap().as_str()){
+                println!("No change needed");
+            }else {
+                println!("Something Happened");
+            }
+        };
     }
-
-    while recount <= (count - 1) {
-
-        if check_str_one.eq(contents.get(recount).unwrap()){
-            one = recount;
-            println!("{:?}", contents.get(one).unwrap());
-            recount += 1;
-        }else if check_str_two.eq(contents.get(recount).unwrap()){
-            one = recount;
-            println!("{:?}", contents.get(one).unwrap());
-            recount += 1;
-        }else {
-            recount += 1;
-        }
-
-        if check_str_three.eq(contents.get(recount).unwrap()){
-            two = recount;
-            println!("{:?}", contents.get(two).unwrap());
-            recount += 1;
-        }else if check_str_four.eq(contents.get(recount).unwrap()){
-            two = recount;
-            println!("{:?}", contents.get(two).unwrap());
-            recount += 1;
-        }else {
-            recount += 1;
-        }
-
-        if check_str_five.eq(contents.get(recount).unwrap()){
-            three = recount;
-            println!("{:?}", contents.get(three).unwrap());
-            recount += 1;
-        }else if check_str_six.eq(contents.get(recount).unwrap()){
-            three = recount;
-            println!("{:?}", contents.get(three).unwrap());
-            recount += 1;
-
-        }else {
-            recount += 1;
-        }
-
-        if check_str_seven.eq(contents.get(recount).unwrap()){
-            four = recount;
-            let str:&str = contents.get(four).unwrap();
-            let modstr = str.replace("#", "");
-
-            println!("{:?}", contents.get(four).unwrap());
-            recount += 1;
-        }else if check_str_eight.eq(contents.get(recount).unwrap()){
-            four = recount;
-            println!("{:?}", contents.get(four).unwrap());
-            recount += 1;
-
-        }else {
-            recount += 1;
-        }
-
-    }
-    /*
-    let re = Regex::new(r"![[:punct:]]|\bSigLevel = Never").unwrap();
-    let caps = re.captures(contents.as_str()).unwrap();
-    println!("{:?}", caps.get(0).unwrap().as_str().replace
-    ("SigLevel = Never", "SigLevel = Optional Trustall"));*/
-
 }
