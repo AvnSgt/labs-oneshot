@@ -1,4 +1,4 @@
-use std::process::{Command};
+use std::process::{Command, exit};
 use std::fs::{OpenOptions, File};
 use std::io::prelude::*;
 use std::io::{BufReader,BufRead};
@@ -7,62 +7,43 @@ use std::path::Path;
 
 
 fn main() {
-    //Rewrite to Main is needed.
-    // This is needed for the end user to know what is happening.
     let keys:Vec<String> =
         vec!["AEFB411B072836CD48FF0381AE252C284B5DBA5D".to_string(),
              "9E4F11C6A072942A7B3FD3B0B81EB14A09A25EB0".to_string(),
              "35F52A02854DCCAEC9DD5CC410443C7F54B00041".to_string()];
-    let mut keys_clone:Vec<String> = vec![];
-    keys_clone = keys.clone();
-    let mut holder:Vec<String> = vec![];
-    let mut hold:Vec<String> = vec![];
-    /*let pass = "PASS!";
-    let fail = "FAIL!";
-    let key_one = gpg_import_key_one();
-    let key_two = gpg_import_key_two();
-    let key_three = gpg_import_key_three();
-
-    if key_one && key_two && key_three{
-        println!("1st Key Import {}", pass);
-        println!("2nd Key Import {}", pass);
-        println!("3rd Key Import {}", pass);
-    }else if !key_one {
-        println!("1st Key Import {}", fail);
-        exit(1);
-    }else if key_one &! key_two{
-        println!("2nd Key Import {}", fail);
-        exit(1);
-    }else if key_one && key_two &!key_three {
-        println!("3rd Key Import {}", fail);
-        exit(1);
-    }
-
-    let init_check = gpg_init();
-
-    if init_check {
-        println!("Pacman Key Init {}", pass);
-    }else {
-        println!("Pacman Key Init {}", fail);
-    }*/
-    //modify_pacman_conf();
-    //holder =  check_pacman_conf();
-    //check_pacman_conf();
-    //let check_one = create_pacman_conf_old();
-    //println!("Created backup of \"/etc/pacman.conf:\" {}", check_one);
-    //create_new_pacman_conf(holder);
-    //hold = pacman_conf_final();
-    //create_new_pacman_conf(hold);
+    let keys_clone:Vec<String> = keys.clone();
+    //let mut contents:Vec<String> = vec![];
     gpg_import_keys(keys);
+    let init_check:bool = gpg_init();
+    if !init_check{
+        println!("Update has failed, after gpg keys have been imported.");
+        println!("Ensure you run update with \"sudo\", or super user privileges");
+        exit(1);
+    }else {
+        println!("GPG Init: Task Completed Successfully!");
+    }
     gpg_remove_keys(keys_clone);
+    let mut contents:Vec<String> = check_pacman_conf();
+    let confold:bool = create_pacman_conf_old();
+    create_new_pacman_conf(contents);
+    let keyring:bool = archlabs_keyring();
+    let populate:bool = key_populate();
+    contents = pacman_conf_final();
+    create_new_pacman_conf(contents);
+    println!("The automated update portion of the process has completed!");
+    println!("Please visit the ArchLABs Forums:");
+    println!("https://www.tapatalk.com/groups/archlabs\
+    /upgrade-guide-for-existing-installations-t432.html");
+    println!("To continue with the manual steps in the process...");
 }
 
 fn gpg_import_keys(k:Vec<String>) {
 
-    let mut keys:String = String::new();
+
     let mut check:i8 = 0;
     for item in k.iter(){
-        keys = item.to_string();
+        let keys:String =
+            item.to_string();
 
         let output = Command::new("gpg")
             .arg("--receive-keys")
@@ -88,7 +69,7 @@ fn gpg_import_keys(k:Vec<String>) {
 }
 
 fn gpg_init() -> bool{
-    let check:bool = true;
+    let check:bool;
     let output = Command::new("pacman-key")
         .arg("--init")
         .output()
@@ -96,23 +77,22 @@ fn gpg_init() -> bool{
     if output.stderr.is_empty(){
         print!("Success: ");
         println!("{}", String::from_utf8(output.stdout).unwrap());
+        check = true;
     }else {
         print!("Error: ");
         println!("{}", String::from_utf8(output.stderr).unwrap());
+        check = false;
     }
-    if output.stderr.is_empty(){
-        return check;
-    }else {
-        return !check;
-    }
+    return check;
 }
 
 fn gpg_remove_keys(k:Vec<String>) {
 
-    let mut keys:String = String::new();
+
     let mut check:i8 = 0;
     for item in k.iter() {
-        keys = item.to_string();
+        let keys:String =
+            item.to_string();
 
         let output =
             Command::new("pacman-key")
@@ -140,28 +120,32 @@ fn gpg_remove_keys(k:Vec<String>) {
 }
 
 fn create_pacman_conf_old() -> bool{
-    let check:bool = true;
+    let check:bool;
     let output = Command::new("mv")
         .arg("out/pacman.conf")
         .arg("out/pacman.conf.old")
         .output()
         .expect("Process Failed to Execute!");
     if output.stderr.is_empty(){
-        return check;
+        println!("{}", String::from_utf8(output.stdout).unwrap());
+        println!("Back up of \"pacman.conf\" complete!");
+        check = true;
     }else {
-        return !check;
+        println!("{}", String::from_utf8(output.stderr).unwrap());
+        check = false;
     }
+    return check;
 }
 //This function will be called on two separate iterations
 fn create_new_pacman_conf(x:Vec<String>) {
     let path = Path::new("out/pacman.conf");
     let display = path.display();
     // Open a file in write-only mode, returns `io::Result<File>`
-    let mut file = match File::create(&path) {
+    let _file = match File::create(&path) {
         Err(why) => panic!("couldn't create {}: {}",
                            display,
                            why.description()),
-        Ok(file) => file,
+        Ok(_file) => _file,
     };
 
     let mut f = OpenOptions::new()
@@ -200,7 +184,7 @@ fn check_pacman_conf() ->Vec<String> {
         archlabs-repo/archlabs_repo/$arch".to_string();
 
     let filename = r"/etc/pacman.conf";
-    let mut f =
+    let f =
         BufReader::new(File::open(filename).unwrap());
     for line in f.lines() {
         match line {
@@ -241,7 +225,7 @@ fn check_pacman_conf() ->Vec<String> {
 }
 
 fn archlabs_keyring() -> bool {
-    let check:bool = true;
+    let check:bool;
     let output =
         Command::new("pacman")
             .arg("-S")
@@ -249,14 +233,17 @@ fn archlabs_keyring() -> bool {
             .output()
             .expect("Process Failed To Execute!");
     if output.stderr.is_empty(){
-        return check;
+        println!("{}", String::from_utf8(output.stdout).unwrap());
+        check = true;
     }else {
-        return !check;
+        println!("{}", String::from_utf8(output.stdout).unwrap());
+        check = false;
     }
+    return check;
 }
 
 fn key_populate() -> bool {
-    let check:bool = true;
+    let check:bool;
     let output =
         Command::new("pacman-key")
             .arg("--populate")
@@ -264,10 +251,13 @@ fn key_populate() -> bool {
             .output()
             .expect("Process Failed To Execute!");
     if output.stderr.is_empty(){
-        return check;
+        println!("{}", String::from_utf8(output.stdout).unwrap());
+        check = true;
     }else {
-        return !check;
+        println!("{}", String::from_utf8(output.stderr).unwrap());
+        check = false;
     }
+    return check;
 }
 
 fn pacman_conf_final() -> Vec<String>{
@@ -280,7 +270,7 @@ fn pacman_conf_final() -> Vec<String>{
     let check_str_three:String =
         "SigLevel = Optional TrustAll".to_string();
     let filename = r"/etc/pacman.conf";
-    let mut f =
+    let f =
         BufReader::new(File::open(filename).unwrap());
     for line in f.lines() {
         match line {
