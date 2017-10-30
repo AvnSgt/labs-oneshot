@@ -5,3 +5,5 @@ authors = ["Lawrence Ott <lawrenceottjr@hotmail.com>"]
 
 [dependencies]
 
+[profile.dev]
+opt-level = 3
