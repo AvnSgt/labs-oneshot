@@ -122,8 +122,8 @@ fn gpg_remove_keys(k:Vec<String>) {
 fn create_pacman_conf_old() -> bool{
     let check:bool;
     let output = Command::new("mv")
-        .arg("out/pacman.conf")
-        .arg("out/pacman.conf.old")
+        .arg("/etc/pacman.conf")
+        .arg("/etc/pacman.conf.old")
         .output()
         .expect("Process Failed to Execute!");
     if output.stderr.is_empty(){
@@ -138,7 +138,7 @@ fn create_pacman_conf_old() -> bool{
 }
 //This function will be called on two separate iterations
 fn create_new_pacman_conf(x:Vec<String>) {
-    let path = Path::new("out/pacman.conf");
+    let path = Path::new("/etc/pacman.conf");
     let display = path.display();
     // Open a file in write-only mode, returns `io::Result<File>`
     let _file = match File::create(&path) {
@@ -151,7 +151,7 @@ fn create_new_pacman_conf(x:Vec<String>) {
     let mut f = OpenOptions::new()
         .write(true)
         .append(true)
-        .open("out/pacman.conf")
+        .open("/etc/pacman.conf")
         .unwrap();
     for item in x.iter(){
         if let Err(e) =
