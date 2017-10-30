@@ -1,6 +1,3 @@
-extern crate regex;
-//use regex::Regex;
-//use std::env;
 use std::process::{Command};
 use std::fs::{OpenOptions, File};
 use std::io::prelude::*;
@@ -12,6 +9,12 @@ use std::path::Path;
 fn main() {
     //Rewrite to Main is needed.
     // This is needed for the end user to know what is happening.
+    let keys:Vec<String> =
+        vec!["AEFB411B072836CD48FF0381AE252C284B5DBA5D".to_string(),
+             "9E4F11C6A072942A7B3FD3B0B81EB14A09A25EB0".to_string(),
+             "35F52A02854DCCAEC9DD5CC410443C7F54B00041".to_string()];
+    let mut keys_clone:Vec<String> = vec![];
+    keys_clone = keys.clone();
     let mut holder:Vec<String> = vec![];
     let mut hold:Vec<String> = vec![];
     /*let pass = "PASS!";
@@ -43,55 +46,44 @@ fn main() {
         println!("Pacman Key Init {}", fail);
     }*/
     //modify_pacman_conf();
-    holder =  check_pacman_conf();
-    check_pacman_conf();
-    let check_one = create_pacman_conf_old();;
-    println!("Created backup of \"/etc/pacman.conf:\" {}", check_one);
-    create_new_pacman_conf(holder);
-    hold = pacman_conf_final();
-    create_new_pacman_conf(hold);
-
+    //holder =  check_pacman_conf();
+    //check_pacman_conf();
+    //let check_one = create_pacman_conf_old();
+    //println!("Created backup of \"/etc/pacman.conf:\" {}", check_one);
+    //create_new_pacman_conf(holder);
+    //hold = pacman_conf_final();
+    //create_new_pacman_conf(hold);
+    gpg_import_keys(keys);
+    gpg_remove_keys(keys_clone);
 }
 
-fn gpg_import_key_one() -> bool{
-    let check:bool = true;
-    let output = Command::new("gpg")
-        .arg("--receive-keys")
-        .arg("AEFB411B072836CD48FF0381AE252C284B5DBA5D")
-        .output()
-        .expect("Process Failed to Execute!");
-    if output.stderr.is_empty(){
-        return check;
-    }else {
-        return !check;
+fn gpg_import_keys(k:Vec<String>) {
+
+    let mut keys:String = String::new();
+    let mut check:i8 = 0;
+    for item in k.iter(){
+        keys = item.to_string();
+
+        let output = Command::new("gpg")
+            .arg("--receive-keys")
+            .arg(keys.to_string())
+            .output()
+            .expect("Process Failed to Execute!");
+        if output.stderr.is_empty(){
+            println!("{}", String::from_utf8(output.stdout).unwrap());
+            check +=1 ; //or default of true
+        }else {
+            println!("{}", String::from_utf8(output.stderr).unwrap());
+            check -= 1;
+        }
     }
-}
-
-fn gpg_import_key_two() -> bool{
-    let check:bool = true;
-    let output = Command::new("gpg")
-        .arg("--receive-keys")
-        .arg("9E4F11C6A072942A7B3FD3B0B81EB14A09A25EB0")
-        .output()
-        .expect("Process Failed to Execute!");
-    if output.stderr.is_empty(){
-        return check;
-    }else {
-        return !check;
-    }
-}
-
-fn gpg_import_key_three() -> bool{
-    let check:bool = true;
-    let output = Command::new("gpg")
-        .arg("--receive-keys")
-        .arg("35F52A02854DCCAEC9DD5CC410443C7F54B00041")
-        .output()
-        .expect("Process Failed to Execute!");
-    if output.stderr.is_empty(){
-        return check;
-    }else {
-        return !check;
+    if check != 3{
+        // One or more keys were not imported.
+        print!("{} ", (check*-1));
+        println!("keys were not imported");
+    }else if check == 3 {
+        print!("{} ", (check));
+        println!("keys were imported successfully.");
     }
 }
 
@@ -102,19 +94,12 @@ fn gpg_init() -> bool{
         .output()
         .expect("Process Failed to Execute!");
     if output.stderr.is_empty(){
-        return check;
+        print!("Success: ");
+        println!("{}", String::from_utf8(output.stdout).unwrap());
     }else {
-        return !check;
+        print!("Error: ");
+        println!("{}", String::from_utf8(output.stderr).unwrap());
     }
-}
-
-fn gpg_remove_key_one() -> bool{
-    let check:bool = true;
-    let output = Command::new("gpg")
-        .arg("-r")
-        .arg("AEFB411B072836CD48FF0381AE252C284B5DBA5D")
-        .output()
-        .expect("Process Failed to Execute!");
     if output.stderr.is_empty(){
         return check;
     }else {
@@ -122,31 +107,35 @@ fn gpg_remove_key_one() -> bool{
     }
 }
 
-fn gpg_remove_key_two() -> bool{
-    let check:bool = true;
-    let output = Command::new("gpg")
-        .arg("-r")
-        .arg("9E4F11C6A072942A7B3FD3B0B81EB14A09A25EB0")
-        .output()
-        .expect("Process Failed to Execute!");
-    if output.stderr.is_empty(){
-        return check;
-    }else {
-        return !check;
-    }
-}
+fn gpg_remove_keys(k:Vec<String>) {
 
-fn gpg_remove_key_three() -> bool {
-    let check:bool = true;
-    let output = Command::new("gpg")
-        .arg("-r")
-        .arg("35F52A02854DCCAEC9DD5CC410443C7F54B00041")
-        .output()
-        .expect("Process Failed to Execute!");
-    if output.stderr.is_empty(){
-        return check;
-    }else {
-        return !check;
+    let mut keys:String = String::new();
+    let mut check:i8 = 0;
+    for item in k.iter() {
+        keys = item.to_string();
+
+        let output =
+            Command::new("pacman-key")
+            .arg("-r")
+            .arg(keys.to_string())
+            .output()
+            .expect("Process Failed to Execute!");
+
+        if output.stderr.is_empty(){
+            println!("{}", String::from_utf8(output.stdout).unwrap());
+            check +=1 ; //or default of true
+        }else {
+            println!("{}", String::from_utf8(output.stderr).unwrap());
+            check -= 1;
+        }
+    }
+    if check != 3{
+        // One or more keys were not imported.
+        print!("{} ", (check*-1));
+        println!("keys were not removed!");
+    }else if check == 3 {
+        print!("{} ", (check));
+        println!("keys were removed successfully.");
     }
 }
 
