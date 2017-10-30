@@ -1,9 +1,34 @@
 [package]
 name = "labs-oneshot"
-version = "0.1.0"
-authors = ["Lawrence Ott <lawrenceottjr@hotmail.com>"]
+version = "0.1.1"
+authors = ["lawrenceottjr@hotmail.com"]
+
+description = "Script to update ArchLABS"
+homepage = "https://archlabslinux.com/"
+repository = "https://github.com/AvnSgt/labs-oneshot.git"
+
+readme = "README.md"
+categories = ["scripts"]
+keywords = ["archlabs", "update", "script"]
+license = "MIT"
 
 [dependencies]
 
 [profile.dev]
 opt-level = 3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
