@@ -24,12 +24,14 @@ fn main() {
     }
     gpg_remove_keys(keys_clone);
     let mut contents:Vec<String> = check_pacman_conf();
-    let confold:bool = create_pacman_conf_old();
+    create_pacman_conf_old();
     create_new_pacman_conf(contents);
-    let keyring:bool = archlabs_keyring();
-    let populate:bool = key_populate();
+    archlabs_keyring();
+    key_populate();
     contents = pacman_conf_final();
     create_new_pacman_conf(contents);
+
+
     println!("The automated update portion of the process has completed!");
     println!("Please visit the ArchLABs Forums:");
     println!("https://www.tapatalk.com/groups/archlabs\
@@ -119,8 +121,7 @@ fn gpg_remove_keys(k:Vec<String>) {
     }
 }
 
-fn create_pacman_conf_old() -> bool{
-    let check:bool;
+fn create_pacman_conf_old(){
     let output = Command::new("mv")
         .arg("/etc/pacman.conf")
         .arg("/etc/pacman.conf.old")
@@ -129,12 +130,9 @@ fn create_pacman_conf_old() -> bool{
     if output.stderr.is_empty(){
         println!("{}", String::from_utf8(output.stdout).unwrap());
         println!("Back up of \"pacman.conf\" complete!");
-        check = true;
     }else {
         println!("{}", String::from_utf8(output.stderr).unwrap());
-        check = false;
     }
-    return check;
 }
 //This function will be called on two separate iterations
 fn create_new_pacman_conf(x:Vec<String>) {
@@ -224,8 +222,7 @@ fn check_pacman_conf() ->Vec<String> {
     return contents;
 }
 
-fn archlabs_keyring() -> bool {
-    let check:bool;
+fn archlabs_keyring() {
     let output =
         Command::new("pacman")
             .arg("-S")
@@ -234,16 +231,13 @@ fn archlabs_keyring() -> bool {
             .expect("Process Failed To Execute!");
     if output.stderr.is_empty(){
         println!("{}", String::from_utf8(output.stdout).unwrap());
-        check = true;
+
     }else {
         println!("{}", String::from_utf8(output.stdout).unwrap());
-        check = false;
     }
-    return check;
 }
 
-fn key_populate() -> bool {
-    let check:bool;
+fn key_populate() {
     let output =
         Command::new("pacman-key")
             .arg("--populate")
@@ -252,12 +246,9 @@ fn key_populate() -> bool {
             .expect("Process Failed To Execute!");
     if output.stderr.is_empty(){
         println!("{}", String::from_utf8(output.stdout).unwrap());
-        check = true;
     }else {
         println!("{}", String::from_utf8(output.stderr).unwrap());
-        check = false;
     }
-    return check;
 }
 
 fn pacman_conf_final() -> Vec<String>{
