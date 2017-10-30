@@ -5,4 +5,3 @@ authors = ["Lawrence Ott <lawrenceottjr@hotmail.com>"]
 
 [dependencies]
 
-regex = "0.2.2"
