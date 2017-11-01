@@ -12,7 +12,7 @@ fn main() {
              "9E4F11C6A072942A7B3FD3B0B81EB14A09A25EB0".to_string(),
              "35F52A02854DCCAEC9DD5CC410443C7F54B00041".to_string()];
     let keys_clone:Vec<String> = keys.clone();
-    //let mut contents:Vec<String> = vec![];
+
     gpg_import_keys(keys);
     let init_check:bool = gpg_init();
     if !init_check{
@@ -210,12 +210,26 @@ fn check_pacman_conf() ->Vec<String> {
                 contents.push(line.to_string());
                 //println!("{}", line.to_string());
             }
-            //Error logic is flawed.. need to workout error check
-            //to determine if pacman.conf needs to be modified.
-            Err(_) => if check_str_two.eq(line.unwrap().as_str()) {
-                println!("No change needed");
-            } else {
-                println!("Something Happened");
+            /* Logic is untested, but should work.
+               Fail Trigger contained below. See
+               comment above fn restore_pacman_conf
+               for a final description of task.
+            */
+            Err(_) => if line.is_err() { // check_str_two.eq(line.unwrap().as_str())
+                let output = Command::new("rm")
+                    .arg("-v")
+                    .arg("/etc/pacman.conf")
+                    .output()
+                    .expect("Process Failed To Execute!");
+                if output.stderr.is_empty(){
+                    println!("Restoring \"pacman.conf\" from .old");
+                    println!("{}", String::from_utf8(output.stdout).unwrap());
+                    let check:bool = restore_pacman_conf();
+                    println!("Restoration compeleted: {}", check);
+                }else {
+                    println!("Failed to restore \"pacman.conf\" from .old");
+                    println!("{}", String::from_utf8(output.stderr).unwrap());
+                }
             }
         };
     };
@@ -279,14 +293,48 @@ fn pacman_conf_final() -> Vec<String>{
                 contents.push(line.to_string());
                 //println!("{}", line.to_string());
             }
-            //Error logic is flawed.. need to workout error check
-            //to determine if pacman.conf needs to be modified.
-            Err(_) => if check_str_two.eq(line.unwrap().as_str()) {
-                println!("No change needed");
-            } else {
-                println!("Something Happened");
+            /* Logic is untested, but should work.
+               Fail Trigger contained below. See
+               comment above fn restore_pacman_conf
+               for a final description of task.
+            */
+            Err(_) => if line.is_err() { // check_str_three.eq(line.unwrap().as_str())
+                let output = Command::new("rm")
+                    .arg("-v")
+                    .arg("/etc/pacman.conf")
+                    .output()
+                    .expect("Process Failed To Execute!");
+                //println!("No change needed");
+                if output.stderr.is_empty(){
+                    println!("Restoring \"pacman.conf\" from .old");
+                    println!("{}", String::from_utf8(output.stdout).unwrap());
+                    let check:bool = restore_pacman_conf();
+                    println!("Restoration compeleted: {}", check);
+                }else {
+                    println!("Failed to restore \"pacman.conf\" from .old");
+                    println!("{}", String::from_utf8(output.stderr).unwrap());
+                }
             }
         };
     };
     return contents;
+}
+/* Introduced simple restoration logic,
+   when the file write encounters an error.
+   This should not trigger in most cases,
+   but it is a fail safe to restore pacman.conf.
+*/
+fn restore_pacman_conf() -> bool {
+    let success:bool;
+    let output = Command::new("mv")
+        .arg("-v")
+        .arg("/etc/pacman.conf.old /etc/pacman.conf")
+        .output()
+        .expect("Procress Failed to Execute!");
+    if output.stderr.is_empty() {
+        success = true;
+    }else {
+        success = false;
+    }
+    return success;
 }
