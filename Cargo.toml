@@ -1,6 +1,6 @@
 [package]
 name = "labs-oneshot"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["avnsgt@tutamail.com"]
 
 description = "Script to update ArchLABS"
@@ -14,8 +14,10 @@ license = "MIT"
 [dependencies]
 
 [profile.dev]
-opt-level = 3
+opt-level = 1
 
+[profile.release]
+opt-level = 3
 
 
 
