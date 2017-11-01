@@ -1,6 +1,6 @@
 [package]
 name = "labs-oneshot"
-version = "0.1.3"
+version = "0.1.4"
 authors = ["avnsgt@tutamail.com"]
 
 description = "Script to update ArchLABS"
